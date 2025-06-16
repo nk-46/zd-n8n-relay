@@ -1,39 +1,25 @@
 import os
 from dotenv import load_dotenv
 import httpx
-from fastapi import FastAPI, Header, HTTPException, Request, Security, Depends
-from fastapi.security.api_key import APIKeyHeader
+from fastapi import FastAPI, Header, HTTPException, Request
 from starlette.responses import JSONResponse
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = FastAPI()
-# Shared secrets, set via environment
+# Shared secret, set via environment
 RELAY_TOKEN = os.getenv("RELAY_TOKEN")
-API_KEY = os.getenv("API_KEY")  # Add this to your .env file
+# Debug print (remove this after testing)
+print("Loaded RELAY_TOKEN:", RELAY_TOKEN)
 
 # Your internal n8n webhook URL, e.g. http://10.0.0.5:5678/webhook/zendesk
 N8N_ENDPOINT = os.getenv("N8N_ENDPOINT")
 
-# API Key security scheme
-API_KEY_NAME = "X-API-Key"
-api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
-
-async def get_api_key(api_key_header: str = Security(api_key_header)):
-    if api_key_header != API_KEY:
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid API Key"
-        )
-    return api_key_header
-
 @app.post("/zendesk-webhook")
-async def relay(
-    request: Request, 
-    x_relay_token: str = Header(None),
-    api_key: str = Depends(get_api_key)  # This adds API key requirement
-):
+async def relay(request: Request, x_relay_token: str = Header(None)):
+
+    
     # 1. Validate secret header
     if x_relay_token != RELAY_TOKEN:
         raise HTTPException(
